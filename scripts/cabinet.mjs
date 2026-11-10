@@ -15,7 +15,7 @@ export const fixtureEntry = {
   description: 'Sweep the contribution graph. Flag hidden bugs. Ship a clean release.',
   category: 'Contribution-graph Minesweeper',
   url: '/mona-sweeper/',
-  repository: 'https://github.com/filmgirl/mona-sweeper',
+  repository: 'https://github.com/jdooley-clt/mona-sweeper',
   art: './assets/mona-maze.png',
   accent: 'mint',
   controls: [

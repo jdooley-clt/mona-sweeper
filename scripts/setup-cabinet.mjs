@@ -10,7 +10,7 @@ if (!ready) {
   mkdirSync(cabinetRoot, { recursive: true });
   const git = (...args) => execFileSync('git', ['-C', cabinetRoot, ...args], { stdio: 'inherit' });
   git('init', '-q');
-  git('remote', 'add', 'origin', 'https://github.com/filmgirl/arcade.git');
+  git('remote', 'add', 'origin', 'https://github.com/jdooley-clt/arcade.git');
   git('fetch', '-q', '--depth=1', 'origin', cabinetSha);
   git('checkout', '-q', '--detach', 'FETCH_HEAD');
 }
