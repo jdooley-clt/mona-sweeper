@@ -14,10 +14,7 @@ const test = base.extend({
     page.on('response', (response) => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
     page.on('requestfailed', (request) => failed.push(request));
     // Sibling games are isolated so lifecycle tests do not depend on the network.
-    // The pinned cabinet catalog still points siblings at filmgirl.github.io; this game's own backlink points at jdooley-clt.github.io.
-    for (const host of ['https://filmgirl.github.io/**', 'https://jdooley-clt.github.io/**']) {
-      await page.route(host, (route) => route.fulfill({ contentType: 'text/html', body: SIBLING_STUB }));
-    }
+    await page.route('https://jdooley-clt.github.io/**', (route) => route.fulfill({ contentType: 'text/html', body: SIBLING_STUB }));
     await use(page);
     for (const request of failed) {
       const reason = request.failure()?.errorText;
@@ -197,7 +194,7 @@ test('switching to another game detaches the Mona Sweeper frame', async ({ page,
   await launchWithSpace(page, frame);
   await page.goto('/arcade/#game/mona-maze');
   await expect(page.locator('#frame-host iframe')).toHaveCount(1);
-  await expect(page.locator('#frame-host iframe')).toHaveAttribute('src', 'https://filmgirl.github.io/mona-maze/');
+  await expect(page.locator('#frame-host iframe')).toHaveAttribute('src', 'https://jdooley-clt.github.io/mona-maze/');
   await expect.poll(() => frame.isDetached()).toBe(true);
   await page.goBack();
   await expect(page.locator('#frame-host iframe')).toHaveAttribute('src', candidate);
