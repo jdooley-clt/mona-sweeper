@@ -14,7 +14,10 @@ const test = base.extend({
     page.on('response', (response) => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
     page.on('requestfailed', (request) => failed.push(request));
     // Sibling games are isolated so lifecycle tests do not depend on the network.
-    await page.route('https://filmgirl.github.io/**', (route) => route.fulfill({ contentType: 'text/html', body: SIBLING_STUB }));
+    // The pinned cabinet catalog still points siblings at filmgirl.github.io; this game's own backlink points at jdooley-clt.github.io.
+    for (const host of ['https://filmgirl.github.io/**', 'https://jdooley-clt.github.io/**']) {
+      await page.route(host, (route) => route.fulfill({ contentType: 'text/html', body: SIBLING_STUB }));
+    }
     await use(page);
     for (const request of failed) {
       const reason = request.failure()?.errorText;
@@ -73,7 +76,7 @@ test('standalone Arcade link is keyboard accessible without controlling the game
   await expect.poll(() => stageData(page, 'status'), { timeout: 30_000 }).toBe('ready');
   const link = page.getByRole('link', { name: 'More games in GitHub Arcade', exact: true });
   await expect(link).toBeVisible();
-  await expect(link).toHaveAttribute('href', 'https://filmgirl.github.io/arcade/');
+  await expect(link).toHaveAttribute('href', 'https://jdooley-clt.github.io/arcade/');
   expect(await link.getAttribute('target')).toBeNull();
   await page.locator('#primary').click();
   await expect.poll(() => stageData(page, 'status')).toBe('playing');
@@ -88,7 +91,7 @@ test('standalone Arcade link is keyboard accessible without controlling the game
   await expect(page.locator('#music')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL('https://filmgirl.github.io/arcade/');
+  await expect(page).toHaveURL('https://jdooley-clt.github.io/arcade/');
 });
 
 for (const launch of ['mouse', 'keyboard']) {

@@ -4,10 +4,18 @@ A candy-pastel GitHub contribution-graph Minesweeper game starring Mona the Octo
 Uncover clean commit tiles, flag hidden regression bugs, chord verified regions,
 and ship a clean release.
 
+## Origins
+
+Mona Sweeper was created by Christina Warren ([@filmgirl](https://github.com/filmgirl))
+and originally published at <https://github.com/filmgirl/mona-sweeper>. This repository
+is a copy that preserves the full project history, maintained by
+[@jdooley-clt](https://github.com/jdooley-clt) during her leave so the game stays
+published. All credit for the game belongs to its creator.
+
 ## Play
 
-Play online at **<https://filmgirl.github.io/mona-sweeper/>**, or find more games in
-[GitHub Arcade](https://filmgirl.github.io/arcade/).
+Play online at **<https://jdooley-clt.github.io/mona-sweeper/>**, or find more games in
+[GitHub Arcade](https://jdooley-clt.github.io/arcade/).
 
 It can also be installed as an app: use **Install** in Chrome or Edge's address
 bar, or **Share → Add to Home Screen** on iPhone and iPad. The app uses the same
@@ -82,7 +90,7 @@ are unit tested in Node.
 The footer's GitHub Arcade link is shown only on the standalone site, not inside
 an iframe, so it cannot navigate the cabinet's game frame back into the cabinet.
 
-The Playwright suite runs the real [Commit Cabinet](https://github.com/filmgirl/arcade)
+The Playwright suite runs the real [Commit Cabinet](https://github.com/jdooley-clt/arcade)
 at a pinned commit with the staged game on the same origin, like GitHub Pages:
 
 ```sh

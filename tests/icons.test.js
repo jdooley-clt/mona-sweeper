@@ -59,7 +59,7 @@ test('index.html links the manifest, Apple icon, theme colors, and standalone ar
     'rel="manifest" href="./manifest.webmanifest"',
     'rel="apple-touch-icon" href="./assets/apple-touch-icon.png"',
     'name="theme-color"',
-    'id="arcade-link" class="arcade-link" href="https://filmgirl.github.io/arcade/" hidden>More games in GitHub Arcade</a>',
+    'id="arcade-link" class="arcade-link" href="https://jdooley-clt.github.io/arcade/" hidden>More games in GitHub Arcade</a>',
   ]) {
     assert.ok(html.includes(tag), tag);
   }
@@ -76,6 +76,6 @@ test('cover, character SVGs, gameplay PNG, and README arcade backlink are valid'
   const [w, h] = pngSize(gameplay);
   assert.ok(w >= 640 && h >= 360, `gameplay PNG size ${w}x${h}`);
   const readme = (await read('README.md')).toString();
-  assert.match(readme, /https:\/\/filmgirl\.github\.io\/mona-sweeper\//);
-  assert.match(readme, /\[GitHub Arcade\]\(https:\/\/filmgirl\.github\.io\/arcade\/\)/);
+  assert.match(readme, /https:\/\/jdooley-clt\.github\.io\/mona-sweeper\//);
+  assert.match(readme, /\[GitHub Arcade\]\(https:\/\/jdooley-clt\.github\.io\/arcade\/\)/);
 });
