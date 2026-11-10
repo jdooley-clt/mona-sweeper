@@ -6,11 +6,9 @@ and ship a clean release.
 
 ## Origins
 
-Mona Sweeper was created by Christina Warren ([@filmgirl](https://github.com/filmgirl))
-and originally published at <https://github.com/filmgirl/mona-sweeper>. This repository
-is a copy that preserves the full project history, maintained by
-[@jdooley-clt](https://github.com/jdooley-clt) during her leave so the game stays
-published. All credit for the game belongs to its creator.
+Created by Christina Warren ([@filmgirl](https://github.com/filmgirl)), currently
+maintained by Jeramiah Dooley ([@jdooley-clt](https://github.com/jdooley-clt)).
+Originally published at <https://github.com/filmgirl/mona-sweeper>.
 
 ## Play
 
