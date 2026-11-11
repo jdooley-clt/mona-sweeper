@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
 const stage = $('stage');
 const boardEl = $('board');
 $('arcade-link').hidden = window.self !== window.top;
+$('source-link').hidden = window.self !== window.top;
 
 const STORAGE = {
   best: 'mona-sweeper-best',
