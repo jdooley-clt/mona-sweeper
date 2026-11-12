@@ -254,17 +254,36 @@ for (const width of [320, 390]) {
     await frame.locator('#mode-toggle').tap();
     await expect.poll(() => stageData(frame, 'mode')).toBe('reveal');
 
-    for (const id of ['theme', 'music', 'sound', 'help', 'diff-starter', 'diff-active', 'diff-monorepo', 'mode-toggle', 'flag-here', 'new-game', 'pause', 'percentage']) {
+    for (const id of ['theme', 'music', 'sound', 'help', 'diff-starter', 'diff-active', 'diff-monorepo', 'mode-toggle', 'flag-here', 'chord-here', 'new-game', 'pause', 'percentage']) {
       const control = frame.locator(`#${id}`);
       await control.scrollIntoViewIfNeeded();
       await expect(control).toBeInViewport();
-      const r = await control.evaluate((el) => { const b = el.getBoundingClientRect(); return { left: b.left, right: b.right }; });
+      const r = await control.evaluate((el) => {
+        const b = el.getBoundingClientRect();
+        return { left: b.left, right: b.right, width: b.width, height: b.height };
+      });
       expect(r.left).toBeGreaterThanOrEqual(0);
       expect(r.right).toBeLessThanOrEqual(width + 1);
+      if (id !== 'percentage') {
+        expect(r.width, `#${id} width >= 24px`).toBeGreaterThanOrEqual(24);
+        expect(r.height, `#${id} height >= 24px`).toBeGreaterThanOrEqual(24);
+      }
     }
+
+    for (const diff of ['starter', 'active', 'monorepo']) {
+      await frame.locator(`#diff-${diff}`).tap();
+      const metrics = await frame.evaluate(() => {
+        const b = document.querySelector('.cell').getBoundingClientRect();
+        return { width: b.width, height: b.height, overflow: document.documentElement.scrollWidth - innerWidth };
+      });
+      expect(metrics.width, `${diff} cell width >= 24px at ${width}px`).toBeGreaterThanOrEqual(24);
+      expect(metrics.height, `${diff} cell height >= 24px at ${width}px`).toBeGreaterThanOrEqual(24);
+      expect(metrics.overflow, `${diff} zero document overflow at ${width}px`).toBeLessThanOrEqual(0);
+    }
+
     await frame.locator('#pause').tap();
     await expect.poll(() => stageData(frame, 'status')).toBe('paused');
-    expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), `mobile ${width}px axe`).toEqual([]);
+    expect(await allAxeViolations(page, '#frame-host iframe'), `mobile ${width}px axe`).toEqual([]);
   });
 }
 
@@ -301,15 +320,22 @@ test('enforces strict CSP and referrer policy with zero violations across diffic
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
 });
 
-async function seriousOrCriticalViolations(page, frameSelector = null) {
+async function allAxeViolations(page, frameSelector = null) {
   let builder = new AxeBuilder({ page }).options({
-    rules: { 'label-content-name-mismatch': { enabled: true } },
+    rules: {
+      'label-content-name-mismatch': { enabled: true },
+      'target-size': { enabled: true },
+      'focus-order-semantics': { enabled: true },
+    },
   });
   if (frameSelector) builder = builder.include(frameSelector);
   const { violations } = await builder.analyze();
-  return violations
-    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
-    .map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.map((n) => n.target) }));
+  return violations.map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.map((n) => n.target) }));
+}
+
+async function seriousOrCriticalViolations(page, frameSelector = null) {
+  const violations = await allAxeViolations(page, frameSelector);
+  return violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
 }
 
 async function driveDeterministicLoss(doc) {
@@ -361,32 +387,40 @@ test('standalone axe accessibility gate passes across ready, playing, paused, he
     if ((await page.locator('html').getAttribute('data-theme')) !== theme) {
       await page.locator('#theme').click();
     }
-    expect(await seriousOrCriticalViolations(page), `standalone ready (${theme})`).toEqual([]);
+    expect(await allAxeViolations(page), `standalone ready (${theme})`).toEqual([]);
+
+    // Opening and closing help from ready returns focus to #help trigger.
+    await page.locator('#help').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#help-dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#help-dialog')).toBeHidden();
+    await expect(page.locator('#help')).toBeFocused();
 
     await page.locator('#primary').click();
     await expect.poll(() => stageData(page, 'status')).toBe('playing');
     await page.locator('.cell[data-state="hidden"]').first().click({ button: 'right' });
-    expect(await seriousOrCriticalViolations(page), `standalone playing (${theme})`).toEqual([]);
+    expect(await allAxeViolations(page), `standalone playing (${theme})`).toEqual([]);
 
     await page.locator('#pause').click();
     await expect.poll(() => stageData(page, 'status')).toBe('paused');
-    expect(await seriousOrCriticalViolations(page), `standalone paused (${theme})`).toEqual([]);
+    expect(await allAxeViolations(page), `standalone paused (${theme})`).toEqual([]);
     await page.locator('#pause').click();
 
     await page.locator('#help').click();
     await expect(page.locator('#help-dialog')).toBeVisible();
-    expect(await seriousOrCriticalViolations(page), `standalone help dialog (${theme})`).toEqual([]);
+    expect(await allAxeViolations(page), `standalone help dialog (${theme})`).toEqual([]);
     await page.locator('#close-help').click();
 
     await page.goto(`${candidate}?seed=1`);
     await expect.poll(() => stageData(page, 'status')).toBe('ready');
     await driveDeterministicLoss(page);
-    expect(await seriousOrCriticalViolations(page), `standalone loss (${theme})`).toEqual([]);
+    expect(await allAxeViolations(page), `standalone loss (${theme})`).toEqual([]);
 
     await page.goto(`${candidate}?seed=1`);
     await expect.poll(() => stageData(page, 'status')).toBe('ready');
     await driveDeterministicWin(page);
-    expect(await seriousOrCriticalViolations(page), `standalone win (${theme})`).toEqual([]);
+    expect(await allAxeViolations(page), `standalone win (${theme})`).toEqual([]);
   }
 
   // Sanity check: an injected unlabeled button must be caught as serious/critical.
@@ -399,7 +433,7 @@ test('standalone axe accessibility gate passes across ready, playing, paused, he
   const injected = await seriousOrCriticalViolations(page);
   expect(injected.some((v) => v.id === 'button-name')).toBe(true);
   await page.evaluate(() => document.getElementById('axe-sanity-probe')?.remove());
-  expect(await seriousOrCriticalViolations(page)).toEqual([]);
+  expect(await allAxeViolations(page)).toEqual([]);
 });
 
 test('cabinet axe accessibility gate passes across ready, playing, paused, help dialog, win, and loss states', async ({ page, isMobile }) => {
@@ -407,29 +441,29 @@ test('cabinet axe accessibility gate passes across ready, playing, paused, help 
 
   await card(page).click();
   await readyGame(page);
-  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet ready').toEqual([]);
+  expect(await allAxeViolations(page, '#frame-host iframe'), 'cabinet ready').toEqual([]);
 
   let frame = await loadSeededCabinetFrame(page, 1);
   await frame.locator('#primary').click();
   await expect.poll(() => stageData(frame, 'status')).toBe('playing');
-  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet playing').toEqual([]);
+  expect(await allAxeViolations(page, '#frame-host iframe'), 'cabinet playing').toEqual([]);
 
   await frame.locator('#pause').click();
   await expect.poll(() => stageData(frame, 'status')).toBe('paused');
-  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet paused').toEqual([]);
+  expect(await allAxeViolations(page, '#frame-host iframe'), 'cabinet paused').toEqual([]);
   await frame.locator('#pause').click();
 
   await frame.locator('#help').click();
   await expect(frame.locator('#help-dialog')).toBeVisible();
-  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet help dialog').toEqual([]);
+  expect(await allAxeViolations(page, '#frame-host iframe'), 'cabinet help dialog').toEqual([]);
   await frame.locator('#close-help').click();
 
   frame = await loadSeededCabinetFrame(page, 2);
   await driveDeterministicLoss(frame);
-  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet loss').toEqual([]);
+  expect(await allAxeViolations(page, '#frame-host iframe'), 'cabinet loss').toEqual([]);
 
   frame = await loadSeededCabinetFrame(page, 3);
   await driveDeterministicWin(frame);
-  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet win').toEqual([]);
+  expect(await allAxeViolations(page, '#frame-host iframe'), 'cabinet win').toEqual([]);
 });
 

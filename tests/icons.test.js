@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { MAP, PNG_ICONS, png, svg } from '../scripts/icons.mjs';
 import { PUBLISHED } from '../scripts/serve.mjs';
 
 const root = new URL('../', import.meta.url);
+const rootDir = fileURLToPath(root);
+const SITE_BASELINE_RAW_BYTES = 166_805;
+const SITE_BASELINE_GZIP_BYTES = 96_345;
 const read = (path) => readFile(new URL(path, root));
 const pngSize = (buf) => {
   assert.equal(buf.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'PNG signature');
@@ -91,4 +98,51 @@ test('cover, character SVGs, gameplay PNG, and README arcade backlink are valid'
   const readme = (await read('README.md')).toString();
   assert.match(readme, /https:\/\/jdooley-clt\.github\.io\/mona-sweeper\//);
   assert.match(readme, /\[GitHub Arcade\]\(https:\/\/jdooley-clt\.github\.io\/arcade\/\)/);
+  assert.match(readme, /Direct pushes to `main` are blocked/);
+});
+
+async function measureSiteBytes(dir) {
+  let rawBytes = 0;
+  let gzipBytes = 0;
+  async function walk(current) {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      const full = join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else {
+        const buf = await readFile(full);
+        rawBytes += buf.length;
+        if (buf.length > 0) gzipBytes += gzipSync(buf, { level: 9 }).length;
+      }
+    }
+  }
+  await walk(dir);
+  return { rawBytes, gzipBytes };
+}
+
+test('staged _site payload stays within 10% of the raw and gzipped baseline budget', async (t) => {
+  const staged = await mkdtemp(join(tmpdir(), 'mona-sweeper-site-'));
+  t.after(() => rm(staged, { recursive: true, force: true }));
+  for (const entry of PUBLISHED) {
+    await cp(join(rootDir, entry), join(staged, entry), { recursive: true });
+  }
+  await writeFile(join(staged, '.nojekyll'), '');
+
+  const { rawBytes, gzipBytes } = await measureSiteBytes(staged);
+  const maxRaw = Math.floor(SITE_BASELINE_RAW_BYTES * 1.10);
+  const maxGzip = Math.floor(SITE_BASELINE_GZIP_BYTES * 1.10);
+  assert.ok(
+    rawBytes <= maxRaw,
+    `staged _site raw payload ${rawBytes} B exceeds +10% budget ${maxRaw} B (baseline ${SITE_BASELINE_RAW_BYTES} B)`
+  );
+  assert.ok(
+    gzipBytes <= maxGzip,
+    `staged _site gzip payload ${gzipBytes} B exceeds +10% budget ${maxGzip} B (baseline ${SITE_BASELINE_GZIP_BYTES} B)`
+  );
+
+  const existingSite = join(rootDir, '_site');
+  const existingStat = await stat(existingSite).catch(() => null);
+  if (existingStat?.isDirectory()) {
+    assert.deepEqual(await measureSiteBytes(existingSite), { rawBytes, gzipBytes });
+  }
 });

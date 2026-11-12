@@ -107,9 +107,10 @@ Chromium, Pixel 7 mobile Chromium, and iPhone 13 mobile WebKit at 320px and 390p
 widths, including strict Content Security Policy enforcement (`default-src 'self'`,
 no inline scripts or styles) and `@axe-core/playwright` accessibility gates.
 
-GitHub Pages deploys on `main` are gated on the `Cabinet compatibility` job; if
-the `main` run flakes: `gh run rerun <run-id> --failed`; deploy only happens
-after the gate is green.
+Direct pushes to `main` are blocked; all changes land through pull requests
+passing the `Cabinet compatibility` check. GitHub Pages deploys on `main` are
+gated on the `Cabinet compatibility` job; if the `main` run flakes:
+`gh run rerun <run-id> --failed`; deploy only happens after the gate is green.
 
 ## Source layout
 
