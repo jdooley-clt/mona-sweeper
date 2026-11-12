@@ -1,14 +1,25 @@
 import { readFile } from 'node:fs/promises';
 import { test as base, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { Game } from '../src/engine.js';
 import { cabinetRoot, cabinetSha, candidateCatalog, origin } from '../scripts/cabinet.mjs';
 
 const candidate = `${origin}/mona-sweeper/`;
 const SIBLING_STUB = '<!doctype html><title>Sibling stub</title><p>Sibling game stub</p>';
+const EXPECTED_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'";
 
 const test = base.extend({
   page: async ({ page }, use) => {
     const failures = [];
     const failed = [];
+    await page.addInitScript(() => {
+      window.__cspViolations = [];
+      document.addEventListener('securitypolicyviolation', (event) => {
+        const summary = `${event.violatedDirective} ${event.blockedURI} ${event.sample || ''}`.trim();
+        window.__cspViolations.push(summary);
+        console.error(`CSP violation: ${summary}`);
+      });
+    });
     page.on('pageerror', (error) => failures.push(error.message));
     page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()); });
     page.on('response', (response) => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
@@ -16,12 +27,17 @@ const test = base.extend({
     // Sibling games are isolated so lifecycle tests do not depend on the network.
     await page.route('https://jdooley-clt.github.io/**', (route) => route.fulfill({ contentType: 'text/html', body: SIBLING_STUB }));
     await use(page);
+    for (const frame of page.frames()) {
+      if (!frame.url().startsWith(origin) || frame.isDetached()) continue;
+      const violations = await frame.evaluate(() => window.__cspViolations ?? []).catch(() => []);
+      for (const v of violations) failures.push(`CSP violation (${frame.url()}): ${v}`);
+    }
     for (const request of failed) {
       const reason = request.failure()?.errorText;
       if (['net::ERR_ABORTED', 'cancelled'].includes(reason)) continue;
       failures.push(`${reason} ${request.url()}`);
     }
-    expect(failures, 'No uncaught errors, console errors, or failed requests').toEqual([]);
+    expect(failures, 'No uncaught errors, console errors, CSP violations, or failed requests').toEqual([]);
   },
 });
 
@@ -35,8 +51,11 @@ async function readyGame(page) {
   await expect.poll(() => page.frames().find((f) => f.url() === candidate)?.url()).toBe(candidate);
   const frame = page.frames().find((f) => f.url() === candidate);
   await expect.poll(() => stageData(frame, 'status'), { timeout: 30_000 }).toBe('ready');
+  await expect(frame.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute('content', EXPECTED_CSP);
+  await expect(frame.locator('meta[name="referrer"]')).toHaveAttribute('content', 'strict-origin-when-cross-origin');
   await expect(frame.locator('#arcade-link')).toBeHidden();
   await expect(frame.locator('#source-link')).toBeHidden();
+  await expect(frame.locator('#board [role="row"]')).toHaveCount(9);
   await expect(frame.locator('#board .cell')).toHaveCount(81);
   return frame;
 }
@@ -245,6 +264,7 @@ for (const width of [320, 390]) {
     }
     await frame.locator('#pause').tap();
     await expect.poll(() => stageData(frame, 'status')).toBe('paused');
+    expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), `mobile ${width}px axe`).toEqual([]);
   });
 }
 
@@ -255,3 +275,161 @@ test('reduced motion still plays', async ({ page, isMobile }) => {
   const frame = await readyGame(page);
   await launchWithSpace(page, frame);
 });
+
+test('enforces strict CSP and referrer policy with zero violations across difficulties and gameplay', async ({ page }) => {
+  await page.goto(candidate);
+  await expect.poll(() => stageData(page, 'status'), { timeout: 30_000 }).toBe('ready');
+  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute('content', EXPECTED_CSP);
+  await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content', 'strict-origin-when-cross-origin');
+  await expect(page.locator('script:not([src])')).toHaveCount(0);
+  const badBlankLinks = await page.evaluate(() => (
+    [...document.querySelectorAll('a[target="_blank"]')].filter((a) => {
+      const rel = (a.getAttribute('rel') || '').split(/\s+/);
+      return !rel.includes('noopener') || !rel.includes('noreferrer');
+    }).length
+  ));
+  expect(badBlankLinks).toBe(0);
+
+  await page.locator('#primary').click();
+  await expect.poll(() => stageData(page, 'status')).toBe('playing');
+  for (const [btnId, cols, rows] of [['diff-active', '12', '12'], ['diff-monorepo', '14', '12'], ['diff-starter', '9', '9']]) {
+    await page.locator(`#${btnId}`).click();
+    await expect(page.locator('#board')).toHaveAttribute('data-cols', cols);
+    await expect(page.locator('#board')).toHaveAttribute('data-rows', rows);
+  }
+  await expect(page.locator('[style]')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
+});
+
+async function seriousOrCriticalViolations(page, frameSelector = null) {
+  let builder = new AxeBuilder({ page }).options({
+    rules: { 'label-content-name-mismatch': { enabled: true } },
+  });
+  if (frameSelector) builder = builder.include(frameSelector);
+  const { violations } = await builder.analyze();
+  return violations
+    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    .map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.map((n) => n.target) }));
+}
+
+async function driveDeterministicLoss(doc) {
+  await doc.locator('#primary').click();
+  await expect.poll(() => stageData(doc, 'status')).toBe('playing');
+  const sim = new Game({ seed: 1, difficulty: 'starter' });
+  sim.reveal(4, 4);
+  const safe = sim.cells.find((c) => !c.revealed && !c.bug);
+  const bug = sim.cells.find((c) => !c.revealed && c.bug);
+  await doc.locator(`.cell[data-x="${safe.x}"][data-y="${safe.y}"]`).click({ button: 'right' });
+  await doc.locator(`.cell[data-x="${bug.x}"][data-y="${bug.y}"]`).click();
+  await expect.poll(() => stageData(doc, 'status')).toBe('over');
+}
+
+async function driveDeterministicWin(doc) {
+  await doc.locator('#primary').click();
+  await expect.poll(() => stageData(doc, 'status')).toBe('playing');
+  const sim = new Game({ seed: 1, difficulty: 'starter' });
+  sim.reveal(4, 4);
+  const coords = [];
+  for (const cell of sim.cells) {
+    if (cell.bug || cell.revealed) continue;
+    coords.push([cell.x, cell.y]);
+    sim.reveal(cell.x, cell.y);
+  }
+  await doc.evaluate((targets) => {
+    for (const [x, y] of targets) {
+      document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`)?.click();
+    }
+  }, coords);
+  await expect.poll(() => stageData(doc, 'status')).toBe('won');
+}
+
+async function loadSeededCabinetFrame(page, run) {
+  const url = `${candidate}?seed=1&run=${run}`;
+  await page.locator('#frame-host iframe').evaluate((el, nextUrl) => { el.src = nextUrl; }, url);
+  await expect.poll(() => page.frames().find((f) => f.url() === url)?.url()).toBe(url);
+  const frame = page.frames().find((f) => f.url() === url);
+  await expect.poll(() => stageData(frame, 'status'), { timeout: 30_000 }).toBe('ready');
+  return frame;
+}
+
+test('standalone axe accessibility gate passes across ready, playing, paused, help dialog, win, and loss states and catches injected violations', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Comprehensive state-by-state axe gate runs on desktop; touch states are gated in mobile tests.');
+
+  for (const theme of ['light', 'dark']) {
+    await page.goto(`${candidate}?seed=1`);
+    await expect.poll(() => stageData(page, 'status'), { timeout: 30_000 }).toBe('ready');
+    if ((await page.locator('html').getAttribute('data-theme')) !== theme) {
+      await page.locator('#theme').click();
+    }
+    expect(await seriousOrCriticalViolations(page), `standalone ready (${theme})`).toEqual([]);
+
+    await page.locator('#primary').click();
+    await expect.poll(() => stageData(page, 'status')).toBe('playing');
+    await page.locator('.cell[data-state="hidden"]').first().click({ button: 'right' });
+    expect(await seriousOrCriticalViolations(page), `standalone playing (${theme})`).toEqual([]);
+
+    await page.locator('#pause').click();
+    await expect.poll(() => stageData(page, 'status')).toBe('paused');
+    expect(await seriousOrCriticalViolations(page), `standalone paused (${theme})`).toEqual([]);
+    await page.locator('#pause').click();
+
+    await page.locator('#help').click();
+    await expect(page.locator('#help-dialog')).toBeVisible();
+    expect(await seriousOrCriticalViolations(page), `standalone help dialog (${theme})`).toEqual([]);
+    await page.locator('#close-help').click();
+
+    await page.goto(`${candidate}?seed=1`);
+    await expect.poll(() => stageData(page, 'status')).toBe('ready');
+    await driveDeterministicLoss(page);
+    expect(await seriousOrCriticalViolations(page), `standalone loss (${theme})`).toEqual([]);
+
+    await page.goto(`${candidate}?seed=1`);
+    await expect.poll(() => stageData(page, 'status')).toBe('ready');
+    await driveDeterministicWin(page);
+    expect(await seriousOrCriticalViolations(page), `standalone win (${theme})`).toEqual([]);
+  }
+
+  // Sanity check: an injected unlabeled button must be caught as serious/critical.
+  await page.evaluate(() => {
+    const probe = document.createElement('button');
+    probe.id = 'axe-sanity-probe';
+    probe.type = 'button';
+    document.body.append(probe);
+  });
+  const injected = await seriousOrCriticalViolations(page);
+  expect(injected.some((v) => v.id === 'button-name')).toBe(true);
+  await page.evaluate(() => document.getElementById('axe-sanity-probe')?.remove());
+  expect(await seriousOrCriticalViolations(page)).toEqual([]);
+});
+
+test('cabinet axe accessibility gate passes across ready, playing, paused, help dialog, win, and loss states', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Comprehensive state-by-state axe gate runs on desktop; touch states are gated in mobile tests.');
+
+  await card(page).click();
+  await readyGame(page);
+  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet ready').toEqual([]);
+
+  let frame = await loadSeededCabinetFrame(page, 1);
+  await frame.locator('#primary').click();
+  await expect.poll(() => stageData(frame, 'status')).toBe('playing');
+  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet playing').toEqual([]);
+
+  await frame.locator('#pause').click();
+  await expect.poll(() => stageData(frame, 'status')).toBe('paused');
+  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet paused').toEqual([]);
+  await frame.locator('#pause').click();
+
+  await frame.locator('#help').click();
+  await expect(frame.locator('#help-dialog')).toBeVisible();
+  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet help dialog').toEqual([]);
+  await frame.locator('#close-help').click();
+
+  frame = await loadSeededCabinetFrame(page, 2);
+  await driveDeterministicLoss(frame);
+  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet loss').toEqual([]);
+
+  frame = await loadSeededCabinetFrame(page, 3);
+  await driveDeterministicWin(frame);
+  expect(await seriousOrCriticalViolations(page, '#frame-host iframe'), 'cabinet win').toEqual([]);
+});
+
