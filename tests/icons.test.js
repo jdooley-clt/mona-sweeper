@@ -99,6 +99,35 @@ test('cover, character SVGs, gameplay PNG, and README arcade backlink are valid'
   assert.match(readme, /https:\/\/jdooley-clt\.github\.io\/mona-sweeper\//);
   assert.match(readme, /\[GitHub Arcade\]\(https:\/\/jdooley-clt\.github\.io\/arcade\/\)/);
   assert.match(readme, /Direct pushes to `main` are blocked/);
+  assert.match(readme, /\[MIT License\]\(LICENSE\)/);
+  assert.match(readme, /\[NOTICE\]\(NOTICE\)/);
+});
+
+test('LICENSE is canonical LF-only MIT and NOTICE carries the Octocat and Octicons notices', async () => {
+  const license = (await read('LICENSE')).toString();
+  assert.equal(license.includes('\r'), false, 'LICENSE must use LF line endings');
+  assert.match(license, /^MIT License\n\nCopyright \(c\) 2026 Mona Sweeper contributors\n\n/);
+  assert.ok(
+    license.endsWith('OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n'),
+    'LICENSE must end immediately after SOFTWARE.\\n'
+  );
+  assert.doesNotMatch(license, /Octocat|Octicons/i);
+  for (const line of license.slice(0, -1).split('\n')) {
+    assert.ok(line.length <= 78, `LICENSE line exceeds 78 columns (${line.length}): ${line}`);
+  }
+
+  const notice = (await read('NOTICE')).toString();
+  assert.equal(notice.includes('\r'), false, 'NOTICE must use LF line endings');
+  assert.ok(notice.endsWith('\n'), 'NOTICE must end with a trailing newline');
+  assert.ok(notice.startsWith('Mona Sweeper is licensed under the MIT License; see LICENSE.\n\n'));
+  for (const line of notice.slice(0, -1).split('\n')) {
+    assert.ok(line.length <= 78, `NOTICE line exceeds 78 columns (${line.length}): ${line}`);
+  }
+  const normalizedNotice = notice.replace(/\s+/g, ' ').trim();
+  assert.equal(
+    normalizedNotice,
+    "Mona Sweeper is licensed under the MIT License; see LICENSE. This license covers original game code, UI, audio synthesis, and board artwork. It does not grant rights to GitHub's Octocat design or trademarks. The adapted pixel Octocat in assets/octocat.svg, assets/mona-sweeper-character.svg, assets/favicon.svg, and assets/*.png remains copyright GitHub, Inc. and subject to GitHub's artwork terms: https://octodex.github.com/faq/ GitHub mark from Primer Octicons is licensed under assets/Octicons-LICENSE.txt."
+  );
 });
 
 async function measureSiteBytes(dir) {
