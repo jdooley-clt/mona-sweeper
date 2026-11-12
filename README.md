@@ -137,5 +137,6 @@ by GitHub.
 - GitHub mark: [Primer Octicons](https://github.com/primer/octicons), under its
   [MIT license](assets/Octicons-LICENSE.txt).
 - Board illustrations, UI, and Web Audio effects/chiptune are original to this
-  project and licensed under the [MIT License](LICENSE).
+  project and licensed under the [MIT License](LICENSE); see [NOTICE](NOTICE)
+  for artwork and third-party license notices.
 

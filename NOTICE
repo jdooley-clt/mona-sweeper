@@ -1,0 +1,11 @@
+Mona Sweeper is licensed under the MIT License; see LICENSE.
+
+This license covers original game code, UI, audio synthesis, and board
+artwork. It does not grant rights to GitHub's Octocat design or trademarks.
+The adapted pixel Octocat in assets/octocat.svg,
+assets/mona-sweeper-character.svg, assets/favicon.svg, and assets/*.png
+remains copyright GitHub, Inc. and subject to GitHub's artwork terms:
+https://octodex.github.com/faq/
+
+GitHub mark from Primer Octicons is licensed under
+assets/Octicons-LICENSE.txt.
