@@ -85,8 +85,10 @@ are unit tested in Node.
 
 ## Cabinet compatibility
 
-The footer's GitHub Arcade link is shown only on the standalone site, not inside
-an iframe, so it cannot navigate the cabinet's game frame back into the cabinet.
+The footer's GitHub Arcade and Source & credits links are shown only on the
+standalone site, not inside an iframe: GitHub refuses to load inside a frame,
+the cabinet's Player Guide carries the Source & credits link, and hiding the
+Arcade link avoids loading a cabinet inside the cabinet.
 
 The Playwright suite runs the real [Commit Cabinet](https://github.com/jdooley-clt/arcade)
 at a pinned commit with the staged game on the same origin, like GitHub Pages:

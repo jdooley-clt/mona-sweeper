@@ -53,13 +53,14 @@ test('maskable icons keep Mona inside the 80% safe zone; Apple icon is opaque', 
   }
 });
 
-test('index.html links the manifest, Apple icon, theme colors, and standalone arcade backlink', async () => {
+test('index.html links the manifest, Apple icon, theme colors, and standalone footer links', async () => {
   const html = (await read('index.html')).toString();
   for (const tag of [
     'rel="manifest" href="./manifest.webmanifest"',
     'rel="apple-touch-icon" href="./assets/apple-touch-icon.png"',
     'name="theme-color"',
     'id="arcade-link" class="arcade-link" href="https://jdooley-clt.github.io/arcade/" hidden>More games in GitHub Arcade</a>',
+    'id="source-link" class="source-link" href="https://github.com/jdooley-clt/mona-sweeper" hidden>Source &amp; credits</a>',
   ]) {
     assert.ok(html.includes(tag), tag);
   }

@@ -36,6 +36,7 @@ async function readyGame(page) {
   const frame = page.frames().find((f) => f.url() === candidate);
   await expect.poll(() => stageData(frame, 'status'), { timeout: 30_000 }).toBe('ready');
   await expect(frame.locator('#arcade-link')).toBeHidden();
+  await expect(frame.locator('#source-link')).toBeHidden();
   await expect(frame.locator('#board .cell')).toHaveCount(81);
   return frame;
 }
@@ -67,26 +68,34 @@ test('serves the real pinned cabinet with only the Mona Sweeper entry changed', 
   }
 });
 
-test('standalone Arcade link is keyboard accessible without controlling the game', async ({ page, isMobile }) => {
+test('standalone footer links are visible and keyboard accessible without controlling the game', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Keyboard coverage runs on desktop.');
   await page.goto(candidate);
   await expect.poll(() => stageData(page, 'status'), { timeout: 30_000 }).toBe('ready');
   const link = page.getByRole('link', { name: 'More games in GitHub Arcade', exact: true });
+  const sourceLink = page.getByRole('link', { name: 'Source & credits', exact: true });
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute('href', 'https://jdooley-clt.github.io/arcade/');
   expect(await link.getAttribute('target')).toBeNull();
+  await expect(sourceLink).toBeVisible();
+  await expect(sourceLink).toHaveAttribute('href', 'https://github.com/jdooley-clt/mona-sweeper');
+  expect(await sourceLink.getAttribute('target')).toBeNull();
   await page.locator('#primary').click();
   await expect.poll(() => stageData(page, 'status')).toBe('playing');
   await page.locator('#stage').focus();
-  await page.keyboard.press('Tab');
-  await expect(link).toBeFocused();
   const cx = await stageData(page, 'cursor-x');
-  await page.keyboard.press('ArrowRight');
-  expect(await stageData(page, 'cursor-x')).toBe(cx);
-  for (const key of ['Space', 'p', 'm', 'f']) await page.keyboard.press(key);
-  expect(await stageData(page, 'status')).toBe('playing');
-  await expect(page.locator('#music')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'true');
+  for (const target of [link, sourceLink]) {
+    await page.keyboard.press('Tab');
+    await expect(target).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    expect(await stageData(page, 'cursor-x')).toBe(cx);
+    for (const key of ['Space', 'p', 'm', 'f']) await page.keyboard.press(key);
+    expect(await stageData(page, 'status')).toBe('playing');
+    await expect(page.locator('#music')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'true');
+  }
+  await page.keyboard.press('Shift+Tab');
+  await expect(link).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL('https://jdooley-clt.github.io/arcade/');
 });
