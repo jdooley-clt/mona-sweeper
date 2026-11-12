@@ -92,6 +92,8 @@ body {
 [hidden] { display: none !important; }
 button {
   font: inherit;
+  min-width: 28px;
+  min-height: 28px;
   color: var(--ink);
   background: var(--surface);
   border: 2px solid var(--ink);
@@ -146,6 +148,8 @@ kbd {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 28px;
+  min-height: 28px;
   color: var(--ink);
   text-decoration: none;
   font-weight: 750;

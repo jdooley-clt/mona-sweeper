@@ -10,8 +10,8 @@ import { PUBLISHED } from '../scripts/serve.mjs';
 
 const root = new URL('../', import.meta.url);
 const rootDir = fileURLToPath(root);
-const SITE_BASELINE_RAW_BYTES = 166_805;
-const SITE_BASELINE_GZIP_BYTES = 96_345;
+const SITE_BASELINE_RAW_BYTES = 166_883;
+const SITE_BASELINE_GZIP_BYTES = 96_350;
 const read = (path) => readFile(new URL(path, root));
 const pngSize = (buf) => {
   assert.equal(buf.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'PNG signature');
