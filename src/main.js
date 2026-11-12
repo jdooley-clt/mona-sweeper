@@ -247,12 +247,15 @@ function buildBoardDom() {
   }
   builtCols = game.cols;
   builtRows = game.rows;
-  boardEl.style.setProperty('--cols', String(game.cols));
-  boardEl.style.setProperty('--rows', String(game.rows));
+  boardEl.dataset.cols = String(game.cols);
+  boardEl.dataset.rows = String(game.rows);
   boardEl.replaceChildren();
   cellElements = [];
 
   for (let y = 0; y < game.rows; y++) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'board-row';
+    rowEl.setAttribute('role', 'row');
     for (let x = 0; x < game.cols; x++) {
       const el = document.createElement('div');
       el.className = 'cell';
@@ -260,9 +263,10 @@ function buildBoardDom() {
       el.dataset.x = String(x);
       el.dataset.y = String(y);
       el.dataset.state = 'hidden';
-      boardEl.append(el);
+      rowEl.append(el);
       cellElements.push(el);
     }
+    boardEl.append(rowEl);
   }
 }
 
@@ -352,7 +356,7 @@ function syncHud() {
 
   $('remaining').textContent = String(game.remainingSafe);
   const pct = game.progressPercent;
-  $('progress-fill').style.width = `${pct}%`;
+  $('progress-fill').dataset.pct = String(pct);
   $('percentage').textContent = `${pct}%`;
   $('best-time').textContent = formatSeconds(bestTimes[game.difficulty]);
 
@@ -718,7 +722,8 @@ function init() {
   syncThemeButton();
   syncAudioButtons();
   $('best').textContent = padScore(best);
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0] || 42;
+  const seedParam = Number(new URLSearchParams(window.location.search).get('seed'));
+  const seed = (Number.isInteger(seedParam) && seedParam > 0 ? seedParam >>> 0 : crypto.getRandomValues(new Uint32Array(1))[0]) || 42;
   game = new Game({ seed, difficulty: 'starter', onEvent });
   syncAll();
   requestAnimationFrame(frame);

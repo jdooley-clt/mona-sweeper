@@ -53,17 +53,29 @@ test('maskable icons keep Mona inside the 80% safe zone; Apple icon is opaque', 
   }
 });
 
-test('index.html links the manifest, Apple icon, theme colors, and standalone footer links', async () => {
+test('index.html enforces strict CSP, referrer policy, external scripts only, and standalone footer links', async () => {
   const html = (await read('index.html')).toString();
   for (const tag of [
+    'http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\' data:; font-src \'self\'; connect-src \'self\'; base-uri \'none\'; form-action \'none\'; object-src \'none\'"',
+    'name="referrer" content="strict-origin-when-cross-origin"',
     'rel="manifest" href="./manifest.webmanifest"',
     'rel="apple-touch-icon" href="./assets/apple-touch-icon.png"',
     'name="theme-color"',
+    '<script src="./src/theme.js"></script>',
     'id="arcade-link" class="arcade-link" href="https://jdooley-clt.github.io/arcade/" hidden>More games in GitHub Arcade</a>',
     'id="source-link" class="source-link" href="https://github.com/jdooley-clt/mona-sweeper" hidden>Source &amp; credits</a>',
   ]) {
     assert.ok(html.includes(tag), tag);
   }
+  assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)/i, 'no inline <script> blocks');
+  assert.doesNotMatch(html, /\sstyle=/i, 'no inline style attributes');
+  for (const match of html.matchAll(/<a\b[^>]*\btarget=["']_blank["'][^>]*>/gi)) {
+    assert.match(match[0], /\brel=["'][^"']*\bnoopener\b[^"']*\bnoreferrer\b[^"']*["']/i, match[0]);
+  }
+  const themeJs = (await read('src/theme.js')).toString();
+  assert.match(themeJs, /document\.documentElement\.dataset\.theme/);
+  const mainJs = (await read('src/main.js')).toString();
+  assert.doesNotMatch(mainJs, /\.style\b/, 'no runtime element.style mutations under strict style-src');
 });
 
 test('cover, character SVGs, gameplay PNG, and README arcade backlink are valid', async () => {

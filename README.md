@@ -104,14 +104,20 @@ npm run test:cabinet
 `npm run build` copies only the published files into `_site/`. The harness serves
 the cabinet at `/arcade/` and `_site/` at `/mona-sweeper/`, testing desktop
 Chromium, Pixel 7 mobile Chromium, and iPhone 13 mobile WebKit at 320px and 390px
-widths.
+widths, including strict Content Security Policy enforcement (`default-src 'self'`,
+no inline scripts or styles) and `@axe-core/playwright` accessibility gates.
+
+GitHub Pages deploys on `main` are gated on the `Cabinet compatibility` job; if
+the `main` run flakes: `gh run rerun <run-id> --failed`; deploy only happens
+after the gate is green.
 
 ## Source layout
 
 | File | Purpose |
 | --- | --- |
-| `index.html`, `style.css` | Interface, themes, and responsive contribution-graph layout |
+| `index.html`, `style.css` | Interface, themes, CSP/referrer headers, and responsive contribution-graph layout |
 | `manifest.webmanifest` | Web app manifest for installing the game |
+| `src/theme.js` | Synchronous pre-paint theme preference bootstrap |
 | `src/engine.js` | Deterministic DOM-free Minesweeper simulation |
 | `src/main.js` | Board rendering, keyboard/pointer/touch input, HUD, audio, and storage |
 | `src/music.js` | Original synthesized Web Audio chiptune |
