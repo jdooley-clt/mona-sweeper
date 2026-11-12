@@ -51,9 +51,10 @@ const formatSeconds = (sec) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-// SVG icons for flags and bugs inside tiles
-const FLAG_SVG = `<svg class="cell-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="#34313e" d="M3 13h8v2H3zM5 2h2v11H5z"/><path fill="#b11f4b" d="M7 2h7l-2 3.5L14 9H7z"/></svg>`;
-const BUG_SVG = `<svg class="cell-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="9" r="4.5" fill="#ffb7a5" stroke="#34313e" stroke-width="1.6"/><circle cx="8" cy="4" r="2.2" fill="#34313e"/><path d="M8 5v8M2.5 6.5l3 1.5M13.5 6.5l-3 1.5M2 9.5h3M14 9.5h-3M2.5 12.5l3-1.5M13.5 12.5l-3-1.5" stroke="#34313e" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+// SVG icons for flags and bugs inside tiles (theme-aware via CSS custom properties)
+const FLAG_SVG = `<svg class="cell-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="var(--ink)" d="M3 13h8v2H3zM5 2h2v11H5z"/><path fill="var(--flag-banner)" d="M7 2h7l-2 3.5L14 9H7z"/></svg>`;
+const WRONG_FLAG_SVG = `<svg class="cell-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="var(--ink)" d="M3 13h8v2H3zM5 2h2v11H5z"/><path fill="var(--flag-banner)" d="M7 2h7l-2 3.5L14 9H7z"/><path d="M2.5 2.5l11 11" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/></svg>`;
+const BUG_SVG = `<svg class="cell-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="9" r="4.5" fill="var(--bug-body)" stroke="var(--ink)" stroke-width="1.6"/><circle cx="8" cy="4" r="2.2" fill="var(--ink)"/><path d="M8 5v8M2.5 6.5l3 1.5M13.5 6.5l-3 1.5M2 9.5h3M14 9.5h-3M2.5 12.5l3-1.5M13.5 12.5l-3-1.5" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
 const MOOD_LABELS = {
   ready: 'Ready to sweep',
@@ -288,7 +289,7 @@ function syncBoardDom() {
       label = `Column ${cell.x + 1}, Row ${cell.y + 1}, triggered bug`;
     } else if (cell.wrongFlag) {
       state = 'wrong-flag';
-      html = FLAG_SVG;
+      html = WRONG_FLAG_SVG;
       label = `Column ${cell.x + 1}, Row ${cell.y + 1}, misplaced flag`;
     } else if (cell.flagged) {
       state = 'flagged';
@@ -357,6 +358,7 @@ function syncHud() {
   $('remaining').textContent = String(game.remainingSafe);
   const pct = game.progressPercent;
   $('progress-fill').dataset.pct = String(pct);
+  $('progress-track').setAttribute('aria-valuenow', String(pct));
   $('percentage').textContent = `${pct}%`;
   $('best-time').textContent = formatSeconds(bestTimes[game.difficulty]);
 
@@ -523,7 +525,8 @@ $('got-it').addEventListener('click', () => $('help-dialog').close());
 $('help-dialog').addEventListener('close', () => {
   if (pausedForHelp && game.status === 'paused') togglePause();
   pausedForHelp = false;
-  focusStage();
+  if (game.status === 'ready') $('help').focus({ preventScroll: true });
+  else focusStage();
 });
 
 // ---------- Board pointer / mouse / touch interactions ----------
@@ -624,6 +627,7 @@ document.addEventListener('keydown', (e) => {
     if (game.status !== 'paused') {
       game.moveCursor(move[0], move[1]);
       syncAll();
+      cellElements[game.cursor.y * game.cols + game.cursor.x]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
     return;
   }

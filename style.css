@@ -8,7 +8,7 @@
   --tile-hidden-hover: #ded4f1;
   --tile-hidden-edge: #b6a3d2;
   --border: #d5d1c5;
-  --border-strong: #a39d90;
+  --border-strong: #7b7468;
   --ink: #34313e;
   --muted: #67616e;
   --soft: #635d6b;
@@ -16,10 +16,13 @@
   --lavender-edge: #b6a3d2;
   --lavender-deep: #6f5a9a;
   --mint: #c5e7d8;
-  --mint-edge: #8ab7a3;
+  --mint-edge: #5f8876;
   --coral: #ffb7a5;
   --coral-edge: #d28f7f;
   --focus: #b11f4b;
+  --flag-banner: #b11f4b;
+  --bug-body: #ffb7a5;
+  --progress-fill: #2e8555;
   --commit-1: #dbf3e2;
   --commit-2: #b8e6c7;
   --commit-3: #8bd4a4;
@@ -46,7 +49,7 @@ html[data-theme="dark"] {
   --tile-hidden-hover: #5c4f7a;
   --tile-hidden-edge: #7d6fa0;
   --border: #514b62;
-  --border-strong: #7d7591;
+  --border-strong: #978fad;
   --ink: #f4efe2;
   --muted: #c9c1d6;
   --soft: #b9b1c6;
@@ -58,6 +61,9 @@ html[data-theme="dark"] {
   --coral: #8a5448;
   --coral-edge: #ffb7a5;
   --focus: #fd8ea1;
+  --flag-banner: #ffd6de;
+  --bug-body: #4a2420;
+  --progress-fill: #63ac83;
   --commit-1: #2b4a3a;
   --commit-2: #366049;
   --commit-3: #467a5d;
@@ -86,6 +92,8 @@ body {
 [hidden] { display: none !important; }
 button {
   font: inherit;
+  min-width: 28px;
+  min-height: 28px;
   color: var(--ink);
   background: var(--surface);
   border: 2px solid var(--ink);
@@ -140,6 +148,8 @@ kbd {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 28px;
+  min-height: 28px;
   color: var(--ink);
   text-decoration: none;
   font-weight: 750;
@@ -346,16 +356,18 @@ h1 span { color: var(--lavender-deep); }
 }
 .board-wrap {
   width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 2px 0;
 }
 .board {
   --cols: 9;
   --rows: 9;
   display: grid;
   gap: 4px;
+  margin: 0 auto;
   width: min(100%, calc(var(--cols) * 44px));
+  min-width: fit-content;
   padding: 10px;
   background: var(--surface-soft);
   border: 2.5px solid var(--ink);
@@ -365,7 +377,7 @@ h1 span { color: var(--lavender-deep); }
 }
 .board-row {
   display: grid;
-  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--cols), minmax(24px, 1fr));
   gap: inherit;
 }
 .board[data-cols="9"] { --cols: 9; }
@@ -375,7 +387,8 @@ h1 span { color: var(--lavender-deep); }
 .board[data-rows="12"] { --rows: 12; }
 .cell {
   aspect-ratio: 1 / 1;
-  min-width: 0;
+  min-width: 24px;
+  min-height: 24px;
   border: 1.5px solid var(--ink);
   border-radius: 6px;
   display: flex;
@@ -513,7 +526,7 @@ h1 span { color: var(--lavender-deep); }
   display: block;
   height: 100%;
   width: 0;
-  background: var(--commit-4);
+  background: var(--progress-fill);
 }
 #progress-fill[data-pct="0"] { width: 0%; } #progress-fill[data-pct="1"] { width: 1%; } #progress-fill[data-pct="2"] { width: 2%; } #progress-fill[data-pct="3"] { width: 3%; } #progress-fill[data-pct="4"] { width: 4%; } #progress-fill[data-pct="5"] { width: 5%; } #progress-fill[data-pct="6"] { width: 6%; } #progress-fill[data-pct="7"] { width: 7%; } #progress-fill[data-pct="8"] { width: 8%; } #progress-fill[data-pct="9"] { width: 9%; }
 #progress-fill[data-pct="10"] { width: 10%; } #progress-fill[data-pct="11"] { width: 11%; } #progress-fill[data-pct="12"] { width: 12%; } #progress-fill[data-pct="13"] { width: 13%; } #progress-fill[data-pct="14"] { width: 14%; } #progress-fill[data-pct="15"] { width: 15%; } #progress-fill[data-pct="16"] { width: 16%; } #progress-fill[data-pct="17"] { width: 17%; } #progress-fill[data-pct="18"] { width: 18%; } #progress-fill[data-pct="19"] { width: 19%; }

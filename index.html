@@ -76,6 +76,7 @@
             <div>
               <span class="label">MONA STATUS</span>
               <strong id="mona-mood-text">Ready to sweep</strong>
+              <span class="sr-only"> — Start new board</span>
             </div>
           </button>
 
@@ -91,7 +92,7 @@
           </div>
         </div>
 
-        <div class="stage" id="stage" tabindex="0" data-status="ready"
+        <div class="stage" id="stage" role="application" tabindex="0" data-status="ready"
           aria-label="Contribution graph Minesweeper board. Move cursor with arrow keys or WASD. Press Space or Enter to reveal, F to flag a bug, C to chord, X to switch Reveal or Flag mode, P to pause.">
           <div class="board-wrap">
             <div id="board" class="board" role="grid" aria-label="Contribution graph tiles"></div>
@@ -106,8 +107,8 @@
         </div>
 
         <div class="progress-row">
-          <div><span class="live-dot"></span><b id="remaining">71</b> safe commits left to verify</div>
-          <div class="progress-track"><i id="progress-fill"></i></div>
+          <div><span class="live-dot" aria-hidden="true"></span><b id="remaining">71</b> safe commits left to verify</div>
+          <div id="progress-track" class="progress-track" role="progressbar" aria-label="Sweep progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="progress-fill" aria-hidden="true"></i></div>
           <span id="percentage">0%</span>
           <span class="best-time-pill">Fastest: <b id="best-time">--:--</b></span>
         </div>
@@ -116,19 +117,19 @@
 
       <section class="legend" aria-label="Legend">
         <span class="legend-title">IN THIS REPO</span>
-        <span><i class="swatch unrevealed"></i>Unverified tile</span>
-        <span><i class="swatch c1"></i><i class="swatch c2"></i><i class="swatch c3"></i><i class="swatch c4"></i>Clean commits (0 adjacent bugs)</span>
-        <span><i class="swatch num"></i>Number = adjacent bugs (1–8)</span>
-        <span><i class="swatch flag"></i>Flagged bug</span>
-        <span><i class="swatch bug"></i>Regression bug</span>
+        <span><i class="swatch unrevealed" aria-hidden="true"></i>Unverified tile</span>
+        <span><i class="swatch c1" aria-hidden="true"></i><i class="swatch c2" aria-hidden="true"></i><i class="swatch c3" aria-hidden="true"></i><i class="swatch c4" aria-hidden="true"></i>Clean commits (0 adjacent bugs)</span>
+        <span><i class="swatch num" aria-hidden="true"></i>Number = adjacent bugs (1–8)</span>
+        <span><i class="swatch flag" aria-hidden="true"></i>Flagged bug</span>
+        <span><i class="swatch bug" aria-hidden="true"></i>Regression bug</span>
       </section>
-
-      <footer>
-        <span>An unofficial fan game. Not affiliated with or endorsed by GitHub.</span>
-        <a id="arcade-link" class="arcade-link" href="https://jdooley-clt.github.io/arcade/" hidden>More games in GitHub Arcade</a>
-        <a id="source-link" class="source-link" href="https://github.com/jdooley-clt/mona-sweeper" hidden>Source &amp; credits</a>
-      </footer>
     </main>
+
+    <footer>
+      <span>An unofficial fan game. Not affiliated with or endorsed by GitHub.</span>
+      <a id="arcade-link" class="arcade-link" href="https://jdooley-clt.github.io/arcade/" hidden>More games in GitHub Arcade</a>
+      <a id="source-link" class="source-link" href="https://github.com/jdooley-clt/mona-sweeper" hidden>Source &amp; credits</a>
+    </footer>
   </div>
 
   <dialog id="help-dialog" aria-labelledby="help-title">
@@ -148,10 +149,10 @@
     </div>
     <h3>Repository rules</h3>
     <ul class="help-list">
-      <li><i class="swatch c3"></i><b>Clean commits</b>: tiles with 0 adjacent bugs automatically cascade and reveal connected clean regions.</li>
-      <li><i class="swatch num"></i><b>Clue numbers (1–8)</b>: tell you exactly how many bugs hide in the 8 surrounding tiles.</li>
-      <li><i class="swatch flag"></i><b>Bug flags</b>: protect suspected bug tiles from accidental clicks and enable fast chording.</li>
-      <li><i class="swatch bug"></i><b>Difficulty presets</b>: switch between <b>Starter 9×9</b> (10 bugs), <b>Active 12×12</b> (22 bugs), and <b>Monorepo 14×12</b> (28 bugs).</li>
+      <li><i class="swatch c3" aria-hidden="true"></i><b>Clean commits</b>: tiles with 0 adjacent bugs automatically cascade and reveal connected clean regions.</li>
+      <li><i class="swatch num" aria-hidden="true"></i><b>Clue numbers (1–8)</b>: tell you exactly how many bugs hide in the 8 surrounding tiles.</li>
+      <li><i class="swatch flag" aria-hidden="true"></i><b>Bug flags</b>: protect suspected bug tiles from accidental clicks and enable fast chording.</li>
+      <li><i class="swatch bug" aria-hidden="true"></i><b>Difficulty presets</b>: switch between <b>Starter 9×9</b> (10 bugs), <b>Active 12×12</b> (22 bugs), and <b>Monorepo 14×12</b> (28 bugs).</li>
     </ul>
     <p>Your best score and fastest clear time for each repository size are saved locally in this browser. The game pauses automatically when its window loses focus.</p>
     <button id="got-it" class="primary" type="button">Got it <span aria-hidden="true">→</span></button>
